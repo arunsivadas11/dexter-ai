@@ -5,6 +5,7 @@ import app.dexter.aiengine.model.Expense;
 import app.dexter.aiengine.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Service
@@ -20,16 +21,31 @@ public class ExpenseService {
 
     public Expense logExpense(Long telegramUserId, String message) {
 
-        ParsedExpense parsed = parser.parse(message);
+        try {
+            ParsedExpense parsed = parser.parse(message);
 
-        Expense expense = new Expense();
-        expense.setTelegramUserId(telegramUserId);
-        expense.setAmount(parsed.amount());
-        expense.setCurrency(parsed.currency());
-        expense.setVendor(parsed.vendor());
-        expense.setCategory(parsed.category());
-        expense.setExpenseDate(LocalDate.parse(parsed.date()));
+            Expense expense = new Expense();
+            expense.setTelegramUserId(telegramUserId);
+            expense.setAmount(parsed.amount());
+            expense.setCurrency(parsed.currency());
+            expense.setVendor(parsed.vendor());
+            expense.setCategory(parsed.category());
+            expense.setExpenseDate(LocalDate.parse(parsed.date()));
 
-        return repository.save(expense);
+            return repository.save(expense);
+
+        } catch (Exception e) {
+
+            // Fallback: save raw message
+            Expense expense = new Expense();
+            expense.setTelegramUserId(telegramUserId);
+            expense.setVendor("UNPARSED");
+            expense.setCategory("UNKNOWN");
+            expense.setCurrency("INR");
+            expense.setAmount(BigDecimal.ZERO);
+            expense.setExpenseDate(LocalDate.now());
+
+            return repository.save(expense);
+        }
     }
 }
