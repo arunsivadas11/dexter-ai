@@ -18,6 +18,9 @@ spring:
       genai:
         api-key: ${GEMINI_API_KEY}
         project-id: ${GEMINI_PROJECT_ID}
+        chat:
+          options:
+            model: gemini-2.5-flash
 
 server:
   port: ${PORT:8080}
