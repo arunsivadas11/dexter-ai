@@ -2,6 +2,7 @@ package app.dexter.aiengine.controller;
 
 import app.dexter.aiengine.model.Expense;
 import app.dexter.aiengine.service.ExpenseService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/webhook")
+@Slf4j
 public class TelegramWebhookController {
 
     private final ExpenseService expenseService;
@@ -29,7 +31,7 @@ public class TelegramWebhookController {
 
     @PostMapping
     public ResponseEntity<String> onUpdateReceived(@RequestBody Map<String, Object> update) {
-
+        log.info("Received message from bot");
         if (update.containsKey("message")) {
             Map<String, Object> message = (Map<String, Object>) update.get("message");
 
