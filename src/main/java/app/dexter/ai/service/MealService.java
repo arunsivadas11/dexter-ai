@@ -7,9 +7,10 @@ import app.dexter.ai.model.MealSuggestion;
 import app.dexter.ai.repository.IngredientRepository;
 import app.dexter.ai.repository.MealRepository;
 import app.dexter.ai.repository.MealSuggestionRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -31,11 +32,10 @@ public class MealService {
     }
 
     // Add ingredient
-    public Ingredient addIngredient(Long telegramUserId, String name, String quantity) {
+    public Ingredient addIngredient(Long telegramUserId, String name) {
         Ingredient ing = new Ingredient();
         ing.setTelegramUserId(telegramUserId);
         ing.setName(name);
-        ing.setQuantity(quantity);
         return ingredientRepository.save(ing);
     }
 
@@ -45,20 +45,40 @@ public class MealService {
     }
 
     // Suggest meal
-    public Meal suggestMeal(Long telegramUserId) {
-        List<Ingredient> ingredients = ingredientRepository.findByTelegramUserId(telegramUserId);
+    public List<Meal> suggestMeals(Long telegramUserId) {
 
+        // 1️⃣ Get all ingredients for this user
+        List<Ingredient> ingredients = ingredientRepository.findByTelegramUserId(telegramUserId);
         List<String> ingredientNames = ingredients.stream()
                 .map(Ingredient::getName)
+                .sorted(String::compareToIgnoreCase) // optional: alphabetical
                 .toList();
 
-        ParsedMeal parsedMeal = aiParser.parseMeal(ingredientNames);
+        if (ingredientNames.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        Meal meal = new Meal();
-        meal.setTelegramUserId(telegramUserId);
-        meal.setName(parsedMeal.name());
-        meal.setIngredients(parsedMeal.ingredients()); // directly a List<String>
-        return mealRepository.save(meal);
+        // 2️⃣ AI suggests 3–4 meals using subsets of ingredients
+        List<ParsedMeal> parsedMeals = aiParser.parseMultipleMeals(ingredientNames);
+
+        List<Meal> results = new ArrayList<>();
+
+        for (ParsedMeal parsedMeal : parsedMeals) {
+
+            // 3️⃣ Check if meal already exists in DB for this user
+            Meal meal = mealRepository.findByTelegramUserIdAndName(telegramUserId, parsedMeal.name())
+                    .orElseGet(() -> {
+                        Meal newMeal = new Meal();
+                        newMeal.setTelegramUserId(telegramUserId);
+                        newMeal.setName(parsedMeal.name());
+                        newMeal.setIngredients(parsedMeal.ingredients());
+                        return mealRepository.save(newMeal);
+                    });
+
+            results.add(meal);
+        }
+
+        return results;
     }
 
     // Suggest healthier alternative

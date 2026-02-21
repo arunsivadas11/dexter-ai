@@ -10,7 +10,12 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "meals")
+@Table(
+        name = "meals",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_telegram_user_meal_name", columnNames = {"telegram_user_id", "name"})
+        }
+)
 public class Meal {
 
     @Id

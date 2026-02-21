@@ -20,9 +20,6 @@ public class Ingredient {
     @Column(nullable = false)
     private String name;
 
-    @Column
-    private String quantity;
-
     @Column(name = "added_at")
     private LocalDateTime addedAt = LocalDateTime.now();
 }

@@ -15,9 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/webhook")
@@ -50,32 +49,68 @@ public class TelegramWebhookController {
 
         try {
             if (text.startsWith("/add_ingredient")) {
-                String[] parts = text.split(" ", 3);
+                String[] parts = text.split(" ", 2); // get everything after command
                 if (parts.length < 2) {
-                    sendMessage(chatId, "Usage: /add_ingredient <name> [quantity]");
+                    sendMessage(chatId, "Usage: /add_ingredient ingredient1, ingredient2, ingredient3");
                 } else {
-                    String name = parts[1];
-                    String quantity = parts.length == 3 ? parts[2] : "";
-                    Ingredient ing = mealService.addIngredient(chatId, name, quantity);
-                    sendMessage(chatId, "✅ Added ingredient: " + ing.getName() + " (" + ing.getQuantity() + ")");
-                }
+                    String input = parts[1].trim();
+                    String[] items = input.split("\\s*,\\s*"); // split by comma and trim spaces
 
+                    List<Ingredient> addedIngredients = new ArrayList<>();
+                    for (String name : items) {
+                        if (!name.isEmpty()) {
+                            Ingredient ing = mealService.addIngredient(chatId, name);
+                            addedIngredients.add(ing);
+                        }
+                    }
+
+                    if (addedIngredients.isEmpty()) {
+                        sendMessage(chatId, "⚠️ No valid ingredients found.");
+                    } else {
+                        String addedNames = addedIngredients.stream()
+                                .map(Ingredient::getName)
+                                .collect(Collectors.joining(", "));
+                        sendMessage(chatId, "✅ Added ingredients: " + addedNames);
+                    }
+                }
             } else if (text.startsWith("/list_ingredients")) {
                 List<Ingredient> ingredients = mealService.listIngredients(chatId);
                 if (ingredients.isEmpty()) {
                     sendMessage(chatId, "No ingredients found.");
                 } else {
+                    // Sort alphabetically by name
+                    List<String> sortedNames = ingredients.stream()
+                            .map(Ingredient::getName)
+                            .sorted(String::compareToIgnoreCase)
+                            .toList();
+
                     StringBuilder sb = new StringBuilder("📝 Ingredients:\n");
-                    ingredients.forEach(i -> sb.append("- ").append(i.getName())
-                            .append(" (").append(i.getQuantity()).append(")\n"));
+                    sortedNames.forEach(name -> sb.append("- ").append(name).append("\n"));
+
                     sendMessage(chatId, sb.toString());
                 }
-
             } else if (text.startsWith("/suggest_meal")) {
-                Meal meal = mealService.suggestMeal(chatId);
-                sendMessage(chatId, "🍽 Suggested Meal: " + meal.getName() +
-                        "\nIngredients: " + meal.getIngredients());
 
+                List<Meal> suggestedMeals = mealService.suggestMeals(chatId);
+
+                if (suggestedMeals.isEmpty()) {
+                    sendMessage(chatId, "No meal suggestions available.");
+                } else {
+                    StringBuilder sb = new StringBuilder("🍽 Suggested Meals:\n");
+
+                    // Avoid duplicate meal names in message
+                    Set<String> addedMealNames = new HashSet<>();
+                    for (Meal meal : suggestedMeals) {
+                        if (!addedMealNames.contains(meal.getName())) {
+                            addedMealNames.add(meal.getName());
+                            sb.append("- ").append(meal.getName())
+                                    .append(" | Ingredients: ").append(String.join(", ", meal.getIngredients()))
+                                    .append("\n");
+                        }
+                    }
+
+                    sendMessage(chatId, sb.toString());
+                }
             } else if (text.startsWith("/ate_out")) {
                 String[] parts = text.split(" ", 2);
                 if (parts.length < 2) {

@@ -3,6 +3,7 @@ package app.dexter.ai.service;
 import app.dexter.ai.dto.ParsedExpense;
 import app.dexter.ai.dto.ParsedMeal;
 import app.dexter.ai.model.Ingredient;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -67,26 +68,34 @@ public class GeminiParser {
         return response.replace("```json", "").replace("```", "").trim();
     }
 
-    public ParsedMeal parseMeal(List<String> ingredients) {
-        String input = String.join(", ", ingredients);
+    public List<ParsedMeal> parseMultipleMeals(List<String> availableIngredients) {
+        String input = String.join(", ", availableIngredients);
 
         String prompt = """
-            Suggest a meal that can be made using these ingredients: %s
-            Return structured JSON:
-            {
-              "name": "Meal Name",
-              "ingredients": ["ingredient1","ingredient2"]
-            }
-            Only return valid JSON
+                You are a home chef assistant. Based on the following available ingredients: %s,\s
+                    suggest 3-4 meals. Each meal can use a subset of the ingredients, not necessarily all.
+                    Your suggestions should follow these preferences:
+                    1️⃣ Mostly South Indian meals (like dosa, idli, sambar, upma, rice-based dishes)
+                    2️⃣ Sometimes North Indian meals (like paratha, poha, paneer curry)
+                    3️⃣ Occasionally English/Continental breakfast (like French toast, scrambled eggs, boiled eggs)
+                    
+                    Return a JSON array of objects with each meal containing:
+                    {
+                        "name": "Meal Name",
+                        "ingredients": ["ingredient1", "ingredient2", ...]
+                    }
+                    Only return valid JSON. Do not include any extra text.
             """.formatted(input);
 
-        String response = chatClient.prompt().user(prompt).call().content();
-        String cleaned = cleanJson(response);
+        String response = chatClient.prompt().user(prompt).call().content().trim();
+        response = response.replace("```json", "").replace("```", "").trim();
 
         try {
-            return objectMapper.readValue(cleaned, ParsedMeal.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(response, new TypeReference<>() {
+            });
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse meal: " + response);
+            throw new RuntimeException("Failed to parse multiple meals: " + response, e);
         }
     }
 
