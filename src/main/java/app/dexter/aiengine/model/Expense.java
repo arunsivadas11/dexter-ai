@@ -3,6 +3,8 @@ package app.dexter.aiengine.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -16,7 +18,11 @@ public class Expense {
 
     private Long telegramUserId;
 
-    private String message;
+    private BigDecimal amount;
+    private String currency;
+    private String vendor;
+    private String category;
+    private LocalDate expenseDate;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 }

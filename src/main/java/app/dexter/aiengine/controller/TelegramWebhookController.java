@@ -1,7 +1,7 @@
 package app.dexter.aiengine.controller;
 
 import app.dexter.aiengine.model.Expense;
-import app.dexter.aiengine.repository.ExpenseRepository;
+import app.dexter.aiengine.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,14 +17,14 @@ import java.util.Map;
 @RequestMapping("/webhook")
 public class TelegramWebhookController {
 
-    private final ExpenseRepository expenseRepository;
+    private final ExpenseService expenseService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${telegram.bot.token}")
     private String botToken;
 
-    public TelegramWebhookController(ExpenseRepository expenseRepository) {
-        this.expenseRepository = expenseRepository;
+    public TelegramWebhookController(ExpenseService expenseService) {
+        this.expenseService = expenseService;
     }
 
     @PostMapping
@@ -33,19 +33,16 @@ public class TelegramWebhookController {
         if (update.containsKey("message")) {
             Map<String, Object> message = (Map<String, Object>) update.get("message");
 
-            Long chatId = Long.valueOf(message.get("chat").toString()
-                    .replaceAll(".*id=(\\d+).*", "$1"));
-
+            Map<String, Object> chat = (Map<String, Object>) message.get("chat");
+            Long chatId = Long.valueOf(chat.get("id").toString());
             String text = (String) message.get("text");
 
-            // Save to DB
-            Expense expense = new Expense();
-            expense.setTelegramUserId(chatId);
-            expense.setMessage(text);
-            expenseRepository.save(expense);
+            Expense saved = expenseService.logExpense(chatId, text);
 
-            // Send reply
-            sendMessage(chatId, "✅ Saved: " + text);
+            sendMessage(chatId,
+                    "✅ Logged ₹" + saved.getAmount() +
+                            " at " + saved.getVendor() +
+                            " (" + saved.getCategory() + ")");
         }
 
         return ResponseEntity.ok("OK");
