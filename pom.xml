@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>app.dexter</groupId>
-	<artifactId>dexter-engine-ai</artifactId>
+	<artifactId>dexter-ai-engine</artifactId>
 	<version>1.0.0</version>
-	<name>dexter-engine-ai</name>
-	<description>AI project for Dexter Engine App</description>
+	<name>dexter-ai-engine</name>
+	<description>AI integrated project for Dexter Engine App</description>
 	<url/>
 	<licenses>
 		<license/>

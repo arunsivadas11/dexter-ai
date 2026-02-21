@@ -1,4 +1,4 @@
-package app.dexter.aiengine.model;
+package app.dexter.ai.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

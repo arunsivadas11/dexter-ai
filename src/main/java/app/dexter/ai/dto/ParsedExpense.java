@@ -1,4 +1,4 @@
-package app.dexter.aiengine.dto;
+package app.dexter.ai.dto;
 
 import java.math.BigDecimal;
 

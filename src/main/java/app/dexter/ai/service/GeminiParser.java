@@ -1,19 +1,24 @@
-package app.dexter.aiengine.service;
+package app.dexter.ai.service;
 
-import app.dexter.aiengine.dto.ParsedExpense;
+import app.dexter.ai.dto.ParsedExpense;
+import app.dexter.ai.dto.ParsedMeal;
+import app.dexter.ai.model.Ingredient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
-public class GeminiExpenseParser {
+public class GeminiParser {
 
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public GeminiExpenseParser(ChatClient.Builder builder) {
+    public GeminiParser(ChatClient.Builder builder) {
         this.chatClient = builder.build();
     }
 
@@ -59,10 +64,38 @@ public class GeminiExpenseParser {
         }
 
         // Remove markdown code fences
-        response = response.replace("```json", "")
-                .replace("```", "")
-                .trim();
+        return response.replace("```json", "").replace("```", "").trim();
+    }
 
-        return response;
+    public ParsedMeal parseMeal(List<String> ingredients) {
+        String input = String.join(", ", ingredients);
+
+        String prompt = """
+            Suggest a meal that can be made using these ingredients: %s
+            Return structured JSON:
+            {
+              "name": "Meal Name",
+              "ingredients": ["ingredient1","ingredient2"]
+            }
+            Only return valid JSON
+            """.formatted(input);
+
+        String response = chatClient.prompt().user(prompt).call().content();
+        String cleaned = cleanJson(response);
+
+        try {
+            return objectMapper.readValue(cleaned, ParsedMeal.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse meal: " + response);
+        }
+    }
+
+    public String suggestHealthierOption(String eatenItem) {
+        String prompt = """
+            Suggest a healthier alternative to the following meal: %s
+            Return only the alternative as plain text
+            """.formatted(eatenItem);
+
+        return chatClient.prompt().user(prompt).call().content().trim();
     }
 }

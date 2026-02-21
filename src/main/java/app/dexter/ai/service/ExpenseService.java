@@ -1,8 +1,8 @@
-package app.dexter.aiengine.service;
+package app.dexter.ai.service;
 
-import app.dexter.aiengine.dto.ParsedExpense;
-import app.dexter.aiengine.model.Expense;
-import app.dexter.aiengine.repository.ExpenseRepository;
+import app.dexter.ai.dto.ParsedExpense;
+import app.dexter.ai.model.Expense;
+import app.dexter.ai.repository.ExpenseRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -13,10 +13,10 @@ import java.time.LocalDate;
 @Slf4j
 public class ExpenseService {
 
-    private final GeminiExpenseParser parser;
+    private final GeminiParser parser;
     private final ExpenseRepository repository;
 
-    public ExpenseService(GeminiExpenseParser parser, ExpenseRepository repository) {
+    public ExpenseService(GeminiParser parser, ExpenseRepository repository) {
         this.parser = parser;
         this.repository = repository;
     }
