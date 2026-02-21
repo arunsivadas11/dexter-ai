@@ -1,9 +1,6 @@
 package app.dexter.ai.controller;
 
-import app.dexter.ai.model.Expense;
-import app.dexter.ai.model.Ingredient;
-import app.dexter.ai.model.Meal;
-import app.dexter.ai.model.MealSuggestion;
+import app.dexter.ai.model.*;
 import app.dexter.ai.service.ExpenseService;
 import app.dexter.ai.service.MealService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/webhook")
@@ -45,6 +41,7 @@ public class TelegramWebhookController {
         Map<String, Object> message = (Map<String, Object>) update.get("message");
         Map<String, Object> chat = (Map<String, Object>) message.get("chat");
         Long chatId = Long.valueOf(chat.get("id").toString());
+        String firstName = chat.get("first_name").toString();
         String text = (String) message.get("text");
 
         try {
@@ -55,21 +52,17 @@ public class TelegramWebhookController {
                 } else {
                     String input = parts[1].trim();
                     String[] items = input.split("\\s*,\\s*"); // split by comma and trim spaces
+                    List<String> itemList = Arrays.stream(items)
+                            .filter(s -> !s.isBlank())
+                            .toList();
 
-                    List<Ingredient> addedIngredients = new ArrayList<>();
-                    for (String name : items) {
-                        if (!name.isEmpty()) {
-                            Ingredient ing = mealService.addIngredient(chatId, name);
-                            addedIngredients.add(ing);
-                        }
-                    }
-
-                    if (addedIngredients.isEmpty()) {
+                    if (itemList.isEmpty()) {
                         sendMessage(chatId, "⚠️ No valid ingredients found.");
                     } else {
-                        String addedNames = addedIngredients.stream()
-                                .map(Ingredient::getName)
-                                .collect(Collectors.joining(", "));
+                        // Call MealService once with the full list
+                        mealService.addIngredients(chatId, itemList);
+
+                        String addedNames = String.join(", ", itemList);
                         sendMessage(chatId, "✅ Added ingredients: " + addedNames);
                     }
                 }
@@ -98,14 +91,18 @@ public class TelegramWebhookController {
                 } else {
                     StringBuilder sb = new StringBuilder("🍽 Suggested Meals:\n");
 
-                    // Avoid duplicate meal names in message
-                    Set<String> addedMealNames = new HashSet<>();
+                    Set<String> addedMealNames = new HashSet<>(); // avoid duplicates in message
                     for (Meal meal : suggestedMeals) {
                         if (!addedMealNames.contains(meal.getName())) {
                             addedMealNames.add(meal.getName());
+
                             sb.append("- ").append(meal.getName())
-                                    .append(" | Ingredients: ").append(String.join(", ", meal.getIngredients()))
-                                    .append("\n");
+                                    .append(" | Ingredients: ").append(String.join(", ", meal.getIngredients()));
+
+                            if (meal.getNote() != null && !meal.getNote().isBlank()) {
+                                sb.append(" | Note: ").append(meal.getNote());
+                            }
+                            sb.append("\n");
                         }
                     }
 
@@ -121,17 +118,19 @@ public class TelegramWebhookController {
                     sendMessage(chatId, "🥗 Healthier alternative: " + suggestion.getSuggestedAlternative());
                 }
 
-            } else if (text.startsWith("/meal_log")) {
-                List<Meal> meals = mealService.getMealLog(chatId);
-                if (meals.isEmpty()) {
-                    sendMessage(chatId, "No meal suggestions logged yet.");
-                } else {
-                    StringBuilder sb = new StringBuilder("📋 Meal Log:\n");
-                    meals.forEach(m -> sb.append("- ").append(m.getName())
-                            .append(" | Ingredients: ").append(m.getIngredients()).append("\n"));
-                    sendMessage(chatId, sb.toString());
+            } else if (text.startsWith("/preference")) {
+                String userInput = text.replaceFirst("/preference", "").trim();
+                if (userInput.isEmpty()) {
+                    sendMessage(chatId, "Please describe your preference in plain text. Example: 'I do not like Idly. Suggest it only once per week.'");
+                    return ResponseEntity.ok("OK");
                 }
 
+                try {
+                    mealService.savePreferencesFromInput(chatId, firstName, userInput);
+                    sendMessage(chatId, "✅ Preference(s) saved successfully!");
+                } catch (Exception e) {
+                    sendMessage(chatId, "⚠️ Could not parse preference: " + e.getMessage());
+                }
             } else {
                 // Default: try parsing as expense
                 Expense saved = expenseService.logExpense(chatId, text);

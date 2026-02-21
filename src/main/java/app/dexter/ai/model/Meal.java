@@ -13,7 +13,7 @@ import java.util.List;
 @Table(
         name = "meals",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_telegram_user_meal_name", columnNames = {"telegram_user_id", "name"})
+                @UniqueConstraint(name = "uk_telegram_user_meal_name", columnNames = {"name"})
         }
 )
 public class Meal {
@@ -22,15 +22,15 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "telegram_user_id", nullable = false)
-    private Long telegramUserId;
-
     @Column(nullable = false)
     private String name;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private List<String> ingredients; // now stored as proper JSONB
+
+    @Column(name = "note")
+    private String note; // NEW: optional note about preferences, limits, etc.
 
     @Column(name = "suggested_at")
     private LocalDateTime suggestedAt = LocalDateTime.now();

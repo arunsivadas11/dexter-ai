@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "ingredients")
+@Table(name = "ingredients", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"name"})
+})
 public class Ingredient {
 
     @Id
@@ -20,6 +22,6 @@ public class Ingredient {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "added_at")
-    private LocalDateTime addedAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 }
