@@ -10,6 +10,8 @@ spring:
       ddl-auto: update
     show-sql: true
   ai:
+    retry:
+      enabled: false
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
