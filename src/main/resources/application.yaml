@@ -10,9 +10,10 @@ spring:
       ddl-auto: update
     show-sql: true
   ai:
-    gemini:
-      api-key: ${GEMINI_API_KEY}
-      project-id: ${GEMINI_PROJECT_ID}
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        project-id: ${GEMINI_PROJECT_ID}
 
 server:
   port: ${PORT:8080}
