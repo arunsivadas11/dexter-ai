@@ -33,6 +33,10 @@ public class GeminiExpenseParser {
                       "date": "YYYY-MM-DD"
                     }
                     
+                    Do not include markdown formatting.
+                    Do not wrap in ```json.
+                    Only return raw JSON.
+                    
                     Message: "%s"
                     """.formatted(input);
 
@@ -41,9 +45,24 @@ public class GeminiExpenseParser {
                     .call()
                     .content();
 
-            return objectMapper.readValue(response, ParsedExpense.class);
+            String cleaned = cleanJson(response);
+
+            return objectMapper.readValue(cleaned, ParsedExpense.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse Gemini response: " + response);
         }
+    }
+
+    private String cleanJson(String response) {
+        if (response == null) {
+            return "";
+        }
+
+        // Remove markdown code fences
+        response = response.replace("```json", "")
+                .replace("```", "")
+                .trim();
+
+        return response;
     }
 }
