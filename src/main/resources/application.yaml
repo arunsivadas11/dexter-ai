@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: aiengine
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  ai:
+    gemini:
+      api-key: ${GEMINI_API_KEY}
+
+server:
+  port: ${PORT:8080}
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN}
