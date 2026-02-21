@@ -11,7 +11,9 @@ spring:
     show-sql: true
   ai:
     retry:
-      enabled: false
+      on-client-errors: false # Disable retries for ALL 4xx (Client) errors
+      exclude-on-http-codes: 429 # Keep other retries but specifically exclude Quota errors
+      max-attempts: 1 # Kill retries entirely
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
