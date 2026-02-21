@@ -3,12 +3,14 @@ package app.dexter.aiengine.service;
 import app.dexter.aiengine.dto.ParsedExpense;
 import app.dexter.aiengine.model.Expense;
 import app.dexter.aiengine.repository.ExpenseRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Service
+@Slf4j
 public class ExpenseService {
 
     private final GeminiExpenseParser parser;
@@ -35,6 +37,7 @@ public class ExpenseService {
             return repository.save(expense);
 
         } catch (Exception e) {
+            log.error("Exception occurred - {}", e.getMessage(), e);
 
             // Fallback: save raw message
             Expense expense = new Expense();
